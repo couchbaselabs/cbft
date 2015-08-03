@@ -195,8 +195,17 @@ func MainStart(cfg cbgt.Cfg, uuid string, tags []string, container string,
 		return nil, fmt.Errorf("error: server URL required (-server)")
 	}
 
+	auth, err := cbgt.NewCbAuthHandler(server)
+	if err != nil {
+		return nil, fmt.Errorf("error: Error in parsing server url err: %v", err)
+	}
+	user, pass, err := auth.GetCredentials()
+	if err != nil {
+		return nil, fmt.Errorf(`error: Error in getting auth from
+            cbauth err:%v`, err)
+	}
 	if server != "." {
-		_, err := couchbase.Connect(server)
+		_, err := couchbase.ConnectWithAuthCreds(server, user, pass)
 		if err != nil {
 			if !strings.HasPrefix(server, "http://") &&
 				!strings.HasPrefix(server, "https://") {
@@ -221,7 +230,7 @@ func MainStart(cfg cbgt.Cfg, uuid string, tags []string, container string,
 	mgr := cbgt.NewManager(cbgt.VERSION, cfg,
 		uuid, tags, container, weight,
 		"", bindHttp, dataDir, server, &MainHandlers{})
-	err := mgr.Start(register)
+	err = mgr.Start(register)
 	if err != nil {
 		return nil, err
 	}
